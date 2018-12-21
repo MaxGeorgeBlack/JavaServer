@@ -305,7 +305,7 @@ token不存在
 /VerifyCode?address=id&code=code
 ```
 
-![1545372420829](C:\Users\Teng_MY\AppData\Roaming\Typora\typora-user-images\1545372420829.png)
+![1545372420829](.\1545372420829.png)
 
 ### 4.1.2 Return Value
 
