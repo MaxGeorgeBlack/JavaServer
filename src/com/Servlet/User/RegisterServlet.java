@@ -1,5 +1,6 @@
 package com.Servlet.User;
 
+import com.DAO.CodeDAO;
 import com.DAO.UserDAO;
 import net.sf.json.JSONObject;
 
@@ -13,6 +14,7 @@ import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
 
+//still not completed, problems about verify code
 @WebServlet(name = "RegisterServlet", urlPatterns = "/Register")
 public class RegisterServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -27,18 +29,26 @@ public class RegisterServlet extends HttpServlet {
             String id = request.getParameter("id").trim();
             String password = request.getParameter("password").trim();
 
-            Boolean verifyResult = ud.verifyRegister(id, password);
+            Boolean verifyResult = ud.verifyAccount(id, password);
 
-            Map<String, String> params = new HashMap<>();
+            Map<String, Integer> params = new HashMap<>();
             JSONObject jsonObject = new JSONObject();
 
             if (verifyResult) {
-                params.put("Result", "Success");
+                boolean codeResult = CodeDAO.sendCode(id);
+                if (codeResult) {
+                    //code 1 : success
+                    params.put("Result", 1);
+                }else{
+                    //code 2 : code sending failed
+                    params.put("Result", 2);
+                }
             } else {
-                params.put("Result", "Failed");
+                //code 3 : register failed, id already exists
+                params.put("Result", 3);
             }
 
-            jsonObject.put("params", params);
+            jsonObject.put("Status", params);
             out.write(jsonObject.toString());
         }
     }

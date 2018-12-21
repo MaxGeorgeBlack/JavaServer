@@ -3,6 +3,7 @@ package com.DAO;
 import com.Entity.Code;
 import com.Entity.User;
 import com.Util.DBManageUtil;
+import com.Util.EmailSendUtil;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -74,5 +75,17 @@ public class CodeDAO {
         return code != null &&
                 time.compareTo(code.getDead_time()) < 0 &&
                 inputCode.equals(code.getCode()) ;
+    }
+
+    public static boolean sendCode(String address){
+        EmailSendUtil mail = new EmailSendUtil();
+        mail.setAddress(address);
+        try {
+            mail.sendMail();
+        }catch(Exception exception){
+            Logger.getLogger(CodeDAO.class.getName()).log(Level.SEVERE, null, exception);
+            return false;
+        }
+        return true;
     }
 }

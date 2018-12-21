@@ -8,13 +8,12 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 import java.io.PrintWriter;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 import com.DAO.LogMessageDAO;
+import com.DAO.TokenDAO;
 import com.DAO.UserDAO;
-import com.Entity.User;
 import com.Util.TimeUtil;
 import net.sf.json.JSONObject;
 
@@ -27,31 +26,57 @@ public class LoginServlet extends HttpServlet {
         response.setCharacterEncoding("utf8");
 
         UserDAO ud = new UserDAO();
-        LogMessageDAO lmd = new LogMessageDAO();
 
-        try(PrintWriter out = response.getWriter()){
+        try {
+            PrintWriter out = response.getWriter();
             String id = request.getParameter("id").trim();
             String password = request.getParameter("password").trim();
 
             String log_id = String.valueOf(System.currentTimeMillis());
             String time = TimeUtil.getTime();
             String info = "Last Login: " + time;
-            boolean verifyResult = ud.verifyLogin(id, password);
-            boolean insertLog = (lmd.createLog(log_id, time, info, id) != -1);
+            String verifyResult = ud.verifyLogin(id, password);
+            boolean insertLog = false;
+            boolean insertToken = false;
 
-
-            Map<String, String> params = new HashMap<>();
-            JSONObject jsonObject = new JSONObject();
-
-            if(verifyResult && insertLog){
-                params.put("Result", "Success");
-            }else{
-                params.put("Result", "Failed");
+            if (verifyResult != null) {
+                String[] tokens  = verifyResult.split(" ");
+                insertToken = (TokenDAO.createToken(tokens[0], id, tokens[1]) != -1);
             }
 
-            jsonObject.put("params", params);
+            Map<String, Integer> result = new HashMap<>();
+            Map<String , String> token = new HashMap<>();
+            JSONObject jsonObject = new JSONObject();
+
+            if (verifyResult != null  && insertToken) {
+                //code 1 : success
+                result.put("Result", 1);
+                token.put("Token", verifyResult.split(" ")[0]);
+                insertLog = (LogMessageDAO.createLog(log_id, time, info, id) != -1);
+                if(!insertLog){
+                    //code 4 : log insertion failed
+                    TokenDAO.deleteToken(verifyResult.split(" ")[0]);
+                    token.clear();
+                    result.clear();
+                    result.put("Result", 4);
+                }
+            }
+            else if(verifyResult == null){
+                //code 2 : wrong password
+                result.put("Result", 2);
+            }else if(!insertToken){
+                //code 3 : token creation failed
+                result.put("Result", 3);
+            }
+
+            jsonObject.put("Status", result);
+            jsonObject.put("Token", token);
+
             out.write(jsonObject.toString());
+        }catch(Exception exception){
+            exception.printStackTrace();
         }
+
     }
 
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {

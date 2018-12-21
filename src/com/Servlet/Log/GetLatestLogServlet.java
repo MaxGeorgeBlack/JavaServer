@@ -1,7 +1,9 @@
 package com.Servlet.Log;
 
 import com.DAO.LogMessageDAO;
+import com.DAO.TokenDAO;
 import com.Entity.LogMessage;
+import com.Util.TimeUtil;
 import net.sf.json.JSONObject;
 
 import javax.servlet.ServletException;
@@ -24,22 +26,40 @@ public class GetLatestLogServlet extends HttpServlet {
         response.setCharacterEncoding("utf8");
 
         try (PrintWriter out = response.getWriter()) {
-            String user_id = request.getParameter("user_id").trim();
-            LogMessage log = LogMessageDAO.queryLatestLog(user_id);
-
-            Map<String, String> params = new HashMap<>();
+            Map<String, Integer> params = new HashMap<>();
+            Map<String, String> logs = new HashMap<>();
             JSONObject jsonObject = new JSONObject();
 
-            if (log != null) {
-                params.put("Result", "Success");
-            } else {
-                params.put("Result", "Failed");
+            String token = request.getParameter("token").trim();
+
+            try {
+                String user_id = TokenDAO.queryToken(token).getUser_id();
+                long expiration = Long.parseLong(TokenDAO.queryToken(token).getExpiration());
+
+                if(TimeUtil.getCurrentTime() < expiration){
+                    LogMessage log = LogMessageDAO.queryLatestLog(user_id);
+
+                    if (log != null) {
+                        //code 1 : success
+                        params.put("Result", 1);
+                        logs.put(log.getTime(), log.getInfo());
+                    }
+                    else{
+                        //code 2 : logs query failed
+                        params.put("Result", 2);
+                    }
+                }else{
+                    //code 3 : token expired
+                    params.put("Result", 3);
+                }
+            }catch (NullPointerException exception){
+                //code 4 : token not exists
+                params.put("Result", 4);
             }
 
-            jsonObject.put("params", params);
-            params.clear();
-            params.put(log.getTime(), log.getInfo());
-            jsonObject.put("log", params);
+
+            jsonObject.put("Status", params);
+            jsonObject.put("Log", logs);
 
             out.write(jsonObject.toString());
         }

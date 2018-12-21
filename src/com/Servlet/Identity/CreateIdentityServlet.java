@@ -1,7 +1,10 @@
 package com.Servlet.Identity;
 
 import com.DAO.IdentityDAO;
+import com.DAO.TokenDAO;
 import com.DAO.UserDAO;
+import com.Entity.Token;
+import com.Util.TimeUtil;
 import net.sf.json.JSONObject;
 
 import javax.servlet.ServletException;
@@ -25,21 +28,35 @@ public class CreateIdentityServlet extends HttpServlet {
         IdentityDAO id = new IdentityDAO();
 
         try (PrintWriter out = response.getWriter()) {
-            String name = request.getParameter("name").trim();
-            String user_id = request.getParameter("user_id").trim();
-
-            Boolean verifyResult = id.verifyCreate(name, user_id);
-
-            Map<String, String> params = new HashMap<>();
+            Map<String, Integer> params = new HashMap<>();
             JSONObject jsonObject = new JSONObject();
 
-            if (verifyResult) {
-                params.put("Result", "Success");
-            } else {
-                params.put("Result", "Failed");
+            String name = request.getParameter("name").trim();
+            String token = request.getParameter("token").trim();
+
+            try {
+                String user_id = TokenDAO.queryToken(token).getUser_id();
+                long expiration = Long.parseLong(TokenDAO.queryToken(token).getExpiration());
+                if (TimeUtil.getCurrentTime() < expiration) {
+                    Boolean verifyResult = id.verifyCreate(name, user_id);
+
+                    if (verifyResult) {
+                        //code 1 : success
+                        params.put("Result", 1);
+                    } else {
+                        //code 2 : identity creation failed
+                        params.put("Result", 2);
+                    }
+                } else {
+                    //code 3 : token expired
+                    params.put("Result", 3);
+                }
+            }catch (NullPointerException exception){
+                //code 4 : token not exists
+                params.put("Result", 4);
             }
 
-            jsonObject.put("params", params);
+            jsonObject.put("Status", params);
             out.write(jsonObject.toString());
         }
     }

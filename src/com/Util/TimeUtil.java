@@ -9,4 +9,8 @@ public class TimeUtil {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         return sdf.format(date);
     }
+
+    public static long getCurrentTime(){
+        return System.currentTimeMillis();
+    }
 }

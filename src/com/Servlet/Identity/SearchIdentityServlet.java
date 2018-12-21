@@ -1,9 +1,11 @@
 package com.Servlet.Identity;
 
 import com.DAO.IdentityDAO;
+import com.DAO.TokenDAO;
 import com.DAO.UserDAO;
 import com.Entity.Identity;
 import com.Entity.User;
+import com.Util.TimeUtil;
 import net.sf.json.JSONObject;
 
 import javax.servlet.ServletException;
@@ -26,25 +28,40 @@ public class SearchIdentityServlet extends HttpServlet {
         response.setCharacterEncoding("utf8");
 
         try (PrintWriter out = response.getWriter()) {
-            String user_id = request.getParameter("user_id").trim();
-
-            List<Identity> identities = IdentityDAO.queryIdentityByUser(user_id);
-
-            Map<String, String> params = new HashMap<>();
+            Map<String, Integer> params = new HashMap<>();
+            Map<String, String> identities = new HashMap<>();
             JSONObject jsonObject = new JSONObject();
 
-            if (identities != null) {
-                params.put("Result", "Success");
-            } else {
-                params.put("Result", "Failed");
+            String token = request.getParameter("token").trim();
+
+            try {
+                String user_id = TokenDAO.queryToken(token).getUser_id();
+                long expiration = Long.parseLong(TokenDAO.queryToken(token).getExpiration());
+                if (TimeUtil.getCurrentTime() < expiration) {
+                    List<Identity> allIdentities = IdentityDAO.queryIdentityByUser(user_id);
+
+                    if (allIdentities != null) {
+                        //code 1 : success
+                        params.put("Result", 1);
+
+                        for (Identity identity : allIdentities) {
+                            identities.put("name", identity.getName());
+                        }
+                    } else {
+                        //code 2 : identity query failed
+                        params.put("Result", 2);
+                    }
+                } else {
+                    //code 3 : token expired
+                    params.put("Result", 3);
+                }
+            }catch (NullPointerException exception){
+                //code 4 : token not exists
+                params.put("Result", 4);
             }
 
-            jsonObject.put("params", params);
-            params.clear();
-            for (Identity identity : identities) {
-                params.put(identity.getName(), identity.getUser_id());
-            }
-            jsonObject.put("identities", params);
+            jsonObject.put("Status", params);
+            jsonObject.put("identities", identities);
 
             out.write(jsonObject.toString());
         }

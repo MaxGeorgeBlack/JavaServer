@@ -1,7 +1,9 @@
 package com.Servlet.User;
 
+import com.DAO.TokenDAO;
 import com.DAO.UserDAO;
 import com.Entity.User;
+import com.Util.TimeUtil;
 import net.sf.json.JSONObject;
 
 import javax.servlet.ServletException;
@@ -15,6 +17,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+//don't touch this
+
 @WebServlet(name = "SearchAllUsersServlet", urlPatterns = "/SearchAllUsers")
 public class SearchAllUsersServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -24,24 +28,39 @@ public class SearchAllUsersServlet extends HttpServlet {
         response.setCharacterEncoding("utf8");
 
         try (PrintWriter out = response.getWriter()) {
-
-            List<User> users = UserDAO.searchAllUsers();
-
-            Map<String, String> params = new HashMap<>();
+            Map<String, Integer> params = new HashMap<>();
+            Map<String, String> users = new HashMap<>();
             JSONObject jsonObject = new JSONObject();
+            String token = request.getParameter("token").trim();
+            String id = request.getParameter("id");
 
-            if (users != null) {
-                params.put("Result", "Success");
-            } else {
-                params.put("Result", "Failed");
+            try {
+                String user_id = TokenDAO.queryToken(token).getUser_id();
+                long expiration = Long.parseLong(TokenDAO.queryToken(token).getExpiration());
+                if (TimeUtil.getCurrentTime() < expiration) {
+                    List<User> allUsers = UserDAO.searchAllUsers(id);
+
+                    if (users != null) {
+                        //code 1 : success
+                        params.put("Result", 1);
+                        for (User user : allUsers) {
+                            users.put("User Id", user.getId());
+                        }
+                    } else {
+                        //code 2 : users query failed
+                        params.put("Result", 2);
+                    }
+                }else{
+                    //code 3 : token expired
+                    params.put("Result", 3);
+                }
+            }catch(NullPointerException exception){
+                //code 4 : token not exists
+                params.put("Result", 4);
             }
 
-            jsonObject.put("params", params);
-            params.clear();
-            for (User user : users) {
-                params.put(user.getId(), user.getPassword());
-            }
-            jsonObject.put("users", params);
+            jsonObject.put("Status", params);
+            jsonObject.put("Users", users);
 
             out.write(jsonObject.toString());
         }

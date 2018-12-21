@@ -3,6 +3,7 @@ package com.DAO;
 import com.Util.DBManageUtil;
 import com.Entity.User;
 import com.Util.EmailSendUtil;
+import com.Util.TokenUtil;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -14,16 +15,17 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class UserDAO {
-    public static List<User> searchAllUsers(){
+    public static List<User> searchAllUsers(String idPart){
         Connection connection = DBManageUtil.getConnection();
         PreparedStatement preparedStatement = null;
         ResultSet resultSet = null;
 
         StringBuilder sqlStatement = new StringBuilder();
-        sqlStatement.append("SELECT * FROM user");
+        sqlStatement.append("SELECT * FROM user WHERE id LIKE ?");
 
         try{
             preparedStatement = connection.prepareStatement(sqlStatement.toString());
+            preparedStatement.setString(1, idPart + "%");
 
             resultSet = preparedStatement.executeQuery();
             List<User> userList = new ArrayList<>();
@@ -93,28 +95,47 @@ public class UserDAO {
         }
     }
 
-    public boolean verifyLogin(String id, String password){
-        User user = UserDAO.queryUser(id);
-        return user != null && password.equals(user.getPassword());
+    public static int deleteUser(String id) {
+        Connection connection = DBManageUtil.getConnection();
+        PreparedStatement preparedStatement = null;
+
+        StringBuilder sqlStatement = new StringBuilder();
+        sqlStatement.append("DELETE FROM user WHERE id=?");
+
+        try {
+            preparedStatement = connection.prepareStatement(sqlStatement.toString());
+            preparedStatement.setString(1, id);
+
+            return preparedStatement.executeUpdate();
+        } catch (SQLException exception) {
+            Logger.getLogger(UserDAO.class.getName()).log(Level.SEVERE, null, exception);
+            return -1;
+        } finally {
+            DBManageUtil.closeAll(connection, preparedStatement, null);
+        }
     }
 
-    public boolean verifyRegister(String id, String password) {
+    public String verifyLogin(String id, String password){
+        User user = UserDAO.queryUser(id);
+        String rightPassword = user.getPassword();
+
+        if(user != null && password.equals(rightPassword)){
+            String token = TokenUtil.sign(id);
+            if(token != null){
+                return token;
+            }
+        }
+
+        return null;
+    }
+
+    public boolean verifyAccount(String id, String password) {
         User existUser = UserDAO.queryUser(id);
         if (existUser != null) {
             return false;
         }
 
         int result = UserDAO.createUser(id, password);
-
-        // 口令模型+验证码验证
-        EmailSendUtil mail = new EmailSendUtil();
-        mail.setAddress(id);
-        try {
-            mail.sendMail();
-        }catch(Exception exception){
-            Logger.getLogger(UserDAO.class.getName()).log(Level.SEVERE, null, exception);
-            return false;
-        }
         return result != -1;
     }
 }

@@ -2,6 +2,7 @@ package com.Servlet.Code;
 
 import com.DAO.CodeDAO;
 import com.DAO.UserDAO;
+import com.Entity.User;
 import net.sf.json.JSONObject;
 
 import javax.servlet.ServletException;
@@ -25,22 +26,25 @@ public class VerifyCodeServlet extends HttpServlet {
         CodeDAO cd = new CodeDAO();
 
         try(PrintWriter out = response.getWriter()){
-            String user_id = request.getParameter("user_id").trim();
+            String address = request.getParameter("address").trim();
             String code = request.getParameter("code").trim();
             String time = String.valueOf(System.currentTimeMillis());
 
-            Boolean verifyResult = cd.verifyCode(user_id, code, time);
+            Boolean verifyResult = cd.verifyCode(address, code, time);
 
-            Map<String, String> params = new HashMap<>();
+            Map<String, Integer> params = new HashMap<>();
             JSONObject jsonObject = new JSONObject();
 
             if(verifyResult){
-                params.put("Result", "Success");
+                //code 1 : success
+                params.put("Result", 1);
             }else{
-                params.put("Result", "Failed");
+                //code 2 : wrong code
+                UserDAO.deleteUser(address);
+                params.put("Result", 2);
             }
 
-            jsonObject.put("params", params);
+            jsonObject.put("Status", params);
             out.write(jsonObject.toString());
         }
 
