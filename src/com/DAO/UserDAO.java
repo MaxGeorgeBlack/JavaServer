@@ -4,6 +4,7 @@ import com.Util.DBManageUtil;
 import com.Entity.User;
 import com.Util.EmailSendUtil;
 import com.Util.TokenUtil;
+import org.apache.commons.lang.ObjectUtils;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -117,7 +118,12 @@ public class UserDAO {
 
     public String verifyLogin(String id, String password){
         User user = UserDAO.queryUser(id);
-        String rightPassword = user.getPassword();
+        String rightPassword = "";
+        try {
+            rightPassword = user.getPassword();
+        }catch (NullPointerException exception){
+            return null;
+        }
 
         if(user != null && password.equals(rightPassword)){
             String token = TokenUtil.sign(id);
