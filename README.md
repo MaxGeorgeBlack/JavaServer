@@ -57,7 +57,7 @@
 申请注册成功，发送验证码
 
 ``` json
-{"Status":{"Result":1}}
+{"Status":{"Result":1},"Strength":3}
 ```
 
 #### status code 2
@@ -65,7 +65,7 @@
 验证码发送失败，注册失败
 
 ``` json
-{"Status":{"Result":2}}
+{"Status":{"Result":2},"Strength":3}
 ```
 
 #### status code 3
@@ -73,7 +73,15 @@
 id已存在，注册失败
 
 ``` json
-{"Status":{"Result":3}}
+{"Status":{"Result":3},"Strength":3}
+```
+
+#### status code 5
+
+密码强度太弱，注册失败
+
+``` json
+{"Status":{"Result":5},"Strength":2}
 ```
 
 ## 1.3 Search User
@@ -323,6 +331,14 @@ token不存在
 
 ``` json
 {"Status":{"Result":2}}
+```
+
+#### status code 3
+
+验证成功，创建用户异常，用户注册失败
+
+``` json
+{"Status":{"Result":3}}
 ```
 
 

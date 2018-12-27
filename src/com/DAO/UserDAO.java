@@ -135,7 +135,6 @@ public class UserDAO {
             return false;
         }
 
-        int result = UserDAO.createUser(id, password);
-        return result != -1;
+        return true;
     }
 }

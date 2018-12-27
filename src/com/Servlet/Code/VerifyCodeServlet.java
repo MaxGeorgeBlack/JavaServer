@@ -36,8 +36,14 @@ public class VerifyCodeServlet extends HttpServlet {
             JSONObject jsonObject = new JSONObject();
 
             if(verifyResult){
-                //code 1 : success
-                params.put("Result", 1);
+                int result = UserDAO.createUser(address, (String)request.getServletContext().getAttribute("UserPassword"));
+                if(result == 1) {
+                    //code 1 : success
+                    params.put("Result", 1);
+                }else{
+                    //code 3 : user insertion failed
+                    params.put("Result", 3);
+                }
             }else{
                 //code 2 : wrong code
                 UserDAO.deleteUser(address);
